@@ -1,16 +1,15 @@
 <div [ngClass]="getCSSClassforDialogWidth(config.width)">
   <h2 mat-dialog-title> {{ config.dialogTitle }} </h2>
   <mat-dialog-content [formGroup]="formGroup">
-
-    <div class="row">
-      <div *ngFor="let content of config.content" [ngClass]="getCSSClassforContentWidth(content)">
+    <ng-template #contentTemplate let-content>
+      <div [ngClass]="getCSSClassforContentWidth(content)">
         <p *ngIf="isInstanceOf(ReusableText, content)" class="width-of-parent">
-          {{ content.text}}
+          {{ content.text }}
         </p>
 
         <mat-form-field *ngIf="isInstanceOf(ReusableInput, content)" class="width-of-parent">
           <mat-label>{{ content.description }}</mat-label>
-          <input matInput [formControlName]="content.value"/>
+          <input matInput [formControlName]="content.value" />
         </mat-form-field>
 
         <mat-form-field *ngIf="isInstanceOf(ReusableSelect, content)" class="width-of-parent">
@@ -18,42 +17,54 @@
           <mat-select *ngIf="valueIsObject(content.options)" [formControlName]="content.value" [compareWith]="objectComparisonFunction">
             <mat-option *ngFor="let options of content.options" [value]="options.value">{{ options.label }}</mat-option>
           </mat-select>
-          <mat-select *ngIf="!valueIsObject(content.options)" [formControlName]="content.value" >
+          <mat-select *ngIf="!valueIsObject(content.options)" [formControlName]="content.value">
             <mat-option *ngFor="let options of content.options" [value]="options.value">{{ options.label }}</mat-option>
           </mat-select>
         </mat-form-field>
 
         <mat-form-field *ngIf="isInstanceOf(ReusableDatepicker, content)" class="width-of-parent">
           <mat-label>{{ content.description }}</mat-label>
-          <input matInput [matDatepicker]="picker" [formControlName]="content.value"/>
+          <input matInput [matDatepicker]="picker" [formControlName]="content.value" />
           <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
         </mat-form-field>
 
-        <mat-slide-toggle
+        <mat-checkbox
           class="width-of-parent"
           [formControlName]="content.value"
           *ngIf="isInstanceOf(ReusableCheckBox, content)">
           {{ content.description }}
-        </mat-slide-toggle>
+        </mat-checkbox>
 
         <mat-form-field *ngIf="isInstanceOf(ReusableTextarea, content)" class="width-of-parent">
           <mat-label>{{ content.description }}</mat-label>
-          <textarea  matInput [formControlName]="content.value"
-                     cdkTextareaAutosize
-                     cdkAutosizeMinRows="3"></textarea>
+          <textarea matInput [formControlName]="content.value" cdkTextareaAutosize cdkAutosizeMinRows="3"></textarea>
         </mat-form-field>
 
         <div *ngIf="isInstanceOf(ReusableCustomComponent, content)" class="width-of-parent">
           <ng-container [ngTemplateOutlet]="content.template"></ng-container>
         </div>
 
+        <mat-tab-group *ngIf="isInstanceOf(ReusableTabs, content)" class="width-of-parent">
+          <mat-tab *ngFor="let tab of content.tabs" [label]="tab.label">
+            <div class="row">
+              <ng-container *ngFor="let tabContent of tab.content">
+                <ng-container *ngTemplateOutlet="contentTemplate; context: {$implicit: tabContent}"></ng-container>
+              </ng-container>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
       </div>
+    </ng-template>
+
+    <div class="row">
+      <ng-container *ngFor="let content of config.content">
+        <ng-container *ngTemplateOutlet="contentTemplate; context: {$implicit: content}"></ng-container>
+      </ng-container>
     </div>
   </mat-dialog-content>
   <mat-dialog-actions>
     <button mat-raised-button color="secondary" (click)="onCloseDialog()">{{ config.onCancelText }}</button>
-    <button mat-raised-button color="primary" (click)="onSaveDialog()" [disabled]="formGroup.invalid" >{{ config.onConfirmText }}</button>
+    <button mat-raised-button color="primary" (click)="onSaveDialog()" [disabled]="formGroup.invalid">{{ config.onConfirmText }}</button>
   </mat-dialog-actions>
-
 </div>
