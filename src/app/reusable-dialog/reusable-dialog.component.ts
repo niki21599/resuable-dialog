@@ -5,11 +5,24 @@ import { CommonModule } from '@angular/common';
 import {MatDatepicker} from "@angular/material/datepicker";
 import {MatInputModule} from "@angular/material/input";
 import {MatSelect} from "@angular/material/select";
+import {MatCheckboxModule} from "@angular/material/checkbox";
+import {MatTabsModule} from "@angular/material/tabs";
 
 
 @Component({
   selector: 'app-reusable-dialog',
-  imports: [CommonModule, MatDialogTitle, ReactiveFormsModule, MatDialogActions, MatDatepicker, MatInputModule, MatSelect], 
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatDialogTitle,
+    ReactiveFormsModule,
+    MatDialogActions,
+    MatDatepicker,
+    MatInputModule,
+    MatSelect,
+    MatCheckboxModule,
+    MatTabsModule
+  ],
   templateUrl: './reusable-dialog.component.html',
   styleUrls: ['./reusable-dialog.component.scss']
 })
@@ -22,6 +35,7 @@ export class ReusableDialogComponent implements OnInit{
   protected readonly ReusableCheckBox = ReusableCheckBox;
   protected readonly ReusableCustomComponent = ReusableCustomComponent;
   protected readonly ReusableTextarea = ReusableTextarea;
+  protected readonly ReusableTabs = ReusableTabs;
 
 
   formGroup: FormGroup = new FormGroup({});
@@ -45,17 +59,7 @@ export class ReusableDialogComponent implements OnInit{
   }
 
   onSaveDialog(){
-
-    for (const content of this.config.content) {
-      if(content instanceof ReusableInput || content instanceof ReusableCheckBox || content instanceof ReusableDatepicker || content instanceof ReusableSelect || content instanceof ReusableTextarea) {
-        let valueString = content.value;
-        if(content.disabled){
-          this.config.data[valueString] = this.formGroup.getRawValue()[valueString];
-        }else{
-          this.config.data[valueString] = this.formGroup.value[valueString];
-        }
-      }
-    }
+    this.collectDataFromContents(this.config.content);
     this.config.onConfirm();
 
     if (this.config.closeOnConfirm){
@@ -101,25 +105,50 @@ export class ReusableDialogComponent implements OnInit{
    }
   }
 
-  buildFormGroup(){
-    for (const content of this.config.content) {
-      if(content instanceof ReusableInput || content instanceof ReusableCheckBox || content instanceof ReusableDatepicker || content instanceof ReusableSelect || content instanceof ReusableTextarea){
-        let control: AbstractControl = new FormControl(this.config.data[content.value])
-        if(content instanceof ReusableDatepicker){
+  private collectDataFromContents(contents: ReusableDialogContent[]) {
+    for (const content of contents) {
+      if (content instanceof ReusableInput || content instanceof ReusableCheckBox || content instanceof ReusableDatepicker || content instanceof ReusableSelect || content instanceof ReusableTextarea) {
+        const valueString = content.value;
+        if (content.disabled) {
+          this.config.data[valueString] = this.formGroup.getRawValue()[valueString];
+        } else {
+          this.config.data[valueString] = this.formGroup.value[valueString];
+        }
+      } else if (content instanceof ReusableTabs) {
+        for (const tab of content.tabs) {
+          this.collectDataFromContents(tab.content);
+        }
+      }
+    }
+  }
+
+  private addControlsForContents(contents: ReusableDialogContent[]) {
+    for (const content of contents) {
+      if (content instanceof ReusableInput || content instanceof ReusableCheckBox || content instanceof ReusableDatepicker || content instanceof ReusableSelect || content instanceof ReusableTextarea) {
+        let control: AbstractControl = new FormControl(this.config.data[content.value]);
+        if (content instanceof ReusableDatepicker) {
           const timestamp = this.config.data[content.value];
-          if(timestamp){
-           control = new FormControl(new Date(timestamp));
+          if (timestamp) {
+            control = new FormControl(new Date(timestamp));
           }
         }
-        if(content.validators){
-          control.addValidators(content.validators)
+        if (content.validators) {
+          control.addValidators(content.validators);
         }
-        if(content.disabled){
+        if (content.disabled) {
           control.disable();
         }
         this.formGroup.addControl(content.value, control);
+      } else if (content instanceof ReusableTabs) {
+        for (const tab of content.tabs) {
+          this.addControlsForContents(tab.content);
+        }
       }
     }
+  }
+
+  buildFormGroup(){
+    this.addControlsForContents(this.config.content);
   }
 }
 
@@ -227,6 +256,25 @@ export class ReusableTextarea extends ReusableDialogContent{
     super(disabled, validators, width);
     this.value = value;
     this.description = description;
+  }
+}
+
+export class ReusableTab {
+  label: string;
+  content: ReusableDialogContent[];
+
+  constructor(label: string, content: ReusableDialogContent[]) {
+    this.label = label;
+    this.content = content;
+  }
+}
+
+export class ReusableTabs extends ReusableDialogContent {
+  tabs: ReusableTab[];
+
+  constructor(tabs: ReusableTab[], width: ReusableDialogContentWidth = ReusableDialogContentWidth.FULLWIDTH) {
+    super(false, [], width);
+    this.tabs = tabs;
   }
 }
 export enum ReusableDialogWidth{
