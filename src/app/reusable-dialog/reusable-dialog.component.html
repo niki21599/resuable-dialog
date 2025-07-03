@@ -1,0 +1,59 @@
+<div [ngClass]="getCSSClassforDialogWidth(config.width)">
+  <h2 mat-dialog-title> {{ config.dialogTitle }} </h2>
+  <mat-dialog-content [formGroup]="formGroup">
+
+    <div class="row">
+      <div *ngFor="let content of config.content" [ngClass]="getCSSClassforContentWidth(content)">
+        <p *ngIf="isInstanceOf(ReusableText, content)" class="width-of-parent">
+          {{ content.text}}
+        </p>
+
+        <mat-form-field *ngIf="isInstanceOf(ReusableInput, content)" class="width-of-parent">
+          <mat-label>{{ content.description }}</mat-label>
+          <input matInput [formControlName]="content.value"/>
+        </mat-form-field>
+
+        <mat-form-field *ngIf="isInstanceOf(ReusableSelect, content)" class="width-of-parent">
+          <mat-label>{{ content.description }}</mat-label>
+          <mat-select *ngIf="valueIsObject(content.options)" [formControlName]="content.value" [compareWith]="objectComparisonFunction">
+            <mat-option *ngFor="let options of content.options" [value]="options.value">{{ options.label }}</mat-option>
+          </mat-select>
+          <mat-select *ngIf="!valueIsObject(content.options)" [formControlName]="content.value" >
+            <mat-option *ngFor="let options of content.options" [value]="options.value">{{ options.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field *ngIf="isInstanceOf(ReusableDatepicker, content)" class="width-of-parent">
+          <mat-label>{{ content.description }}</mat-label>
+          <input matInput [matDatepicker]="picker" [formControlName]="content.value"/>
+          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-slide-toggle
+          class="width-of-parent"
+          [formControlName]="content.value"
+          *ngIf="isInstanceOf(ReusableCheckBox, content)">
+          {{ content.description }}
+        </mat-slide-toggle>
+
+        <mat-form-field *ngIf="isInstanceOf(ReusableTextarea, content)" class="width-of-parent">
+          <mat-label>{{ content.description }}</mat-label>
+          <textarea  matInput [formControlName]="content.value"
+                     cdkTextareaAutosize
+                     cdkAutosizeMinRows="3"></textarea>
+        </mat-form-field>
+
+        <div *ngIf="isInstanceOf(ReusableCustomComponent, content)" class="width-of-parent">
+          <ng-container [ngTemplateOutlet]="content.template"></ng-container>
+        </div>
+
+      </div>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button mat-raised-button color="secondary" (click)="onCloseDialog()">{{ config.onCancelText }}</button>
+    <button mat-raised-button color="primary" (click)="onSaveDialog()" [disabled]="formGroup.invalid" >{{ config.onConfirmText }}</button>
+  </mat-dialog-actions>
+
+</div>
